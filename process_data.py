@@ -28,9 +28,16 @@ def col2num(col):
             num = num * 26 + (ord(c.upper()) - ord('A')) + 1
     return num - 1
 
-def str2float(x):
+def cast_long_lat(x):
+    """
+    only for longitude and latitude
+    """
     try:
-        return float(x)
+        fx = float(x)
+        if np.isnan(fx):
+            return np.nan
+        else:
+            return int(fx)
     except ValueError:
         logger.warning("Unable to convert %s to float", x)
         return np.nan
@@ -40,6 +47,9 @@ def get_zip():
     df = pd.read_csv("data/zip_codes_states.csv")
     df = df[["zip_code", "city", "longitude", "latitude"]]
     df = df.rename(columns={"longitude":"long", "latitude":"lat"})
+
+    for col in ["long", "lat"]:
+        df[col] = df[col].apply(cast_long_lat)
     return df
 
 def get_sat():
@@ -59,17 +69,32 @@ def get_tweet():
     """
     df = pd.read_csv("data/tweets.csv")
     df = df.rename(columns={"lng":"long"})
+    df = df.dropna(subset=["long", "lat"]) # TODO: is it right to drop entries without long, lat?
     for col in ["lat", "long"]:
-        df[col] = df[col].apply(str2float)
+        df[col] = df[col].apply(cast_long_lat)
     df = df[["text", "lat", "long"]]
     df[["beh_id", "cond_id"]] = df["text"].apply(classifier.classify)
     return df
+
+def get_res(zip_df, sat_df, tweet_df):
+    tweet_df["count"] = 1
+    tweet_df = tweet_df.groupby(["long", "lat", "cond_id", "beh_id"]).agg({"count":np.sum})
+    tweet_df = tweet_df.reset_index()
+
+    sat_df = sat_df.merge(zip_df, on="zip_code")
+    sat_df = sat_df.groupby(["long", "lat"]).agg({"sat":np.average})
+    sat_df = sat_df.reset_index()
+
+    res = tweet_df.merge(sat_df, on=["long", "lat"])
+    return res
+
 
 def main():
     zip_df = get_zip()
     sat_df = get_sat()
     tweet_df = get_tweet()
-    pass
+    res = get_res(zip_df, sat_df, tweet_df)
+    print res
 
 if __name__ == "__main__":
     main()
