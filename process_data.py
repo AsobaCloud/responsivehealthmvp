@@ -1,19 +1,11 @@
 import pandas as pd
 import numpy as np
 import string
+import logging
+import classifier
 
-def col2num(col):
-    num = 0
-    for c in col:
-        if c in string.ascii_letters:
-            num = num * 26 + (ord(c.upper()) - ord('A')) + 1
-    return num - 1
-
-def get_zip():
-    df = pd.read_csv("data/zip_codes_states.csv")
-    df = df[["zip_code", "city", "longitude", "latitude"]]
-    df = df.rename(columns={"longitude":"long", "latitude":"lat"})
-    return df
+logger = logging.getLogger(__name__)
+logging.basicConfig()
 
 def calc_sat(row):
     """
@@ -29,6 +21,27 @@ def perc2float(x):
     else:
         return x
 
+def col2num(col):
+    num = 0
+    for c in col:
+        if c in string.ascii_letters:
+            num = num * 26 + (ord(c.upper()) - ord('A')) + 1
+    return num - 1
+
+def str2float(x):
+    try:
+        return float(x)
+    except ValueError:
+        logger.warning("Unable to convert %s to float", x)
+        return np.nan
+
+
+def get_zip():
+    df = pd.read_csv("data/zip_codes_states.csv")
+    df = df[["zip_code", "city", "longitude", "latitude"]]
+    df = df.rename(columns={"longitude":"long", "latitude":"lat"})
+    return df
+
 def get_sat():
     df = pd.read_csv("data/HCAPHS Patient Satisfaction.csv")
     for col in df.columns:
@@ -41,7 +54,15 @@ def get_sat():
     return df
 
 def get_tweet():
+    """
+    NOTE: there are lines with lat == "lat" !!
+    """
     df = pd.read_csv("data/tweets.csv")
+    df = df.rename(columns={"lng":"long"})
+    for col in ["lat", "long"]:
+        df[col] = df[col].apply(str2float)
+    df = df[["text", "lat", "long"]]
+    df[["beh_id", "cond_id"]] = df["text"].apply(classifier.classify)
     return df
 
 def main():
