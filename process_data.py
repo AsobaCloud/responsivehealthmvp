@@ -44,6 +44,9 @@ def cast_long_lat(x):
 
 
 def get_zip():
+    """
+    Get the zip table
+    """
     df = pd.read_csv("data/zip_codes_states.csv")
     df = df[["zip_code", "city", "longitude", "latitude"]]
     df = df.rename(columns={"longitude":"long", "latitude":"lat"})
@@ -53,6 +56,9 @@ def get_zip():
     return df
 
 def get_sat():
+    """
+    Get the satisfcation table
+    """
     df = pd.read_csv("data/HCAPHS Patient Satisfaction.csv")
     for col in df.columns:
         df[col] = df[col].apply(perc2float)
@@ -65,6 +71,7 @@ def get_sat():
 
 def get_tweet():
     """
+    Get the tweet table
     NOTE: there are lines with lat == "lat" !!
     """
     df = pd.read_csv("data/tweets.csv")
@@ -77,6 +84,9 @@ def get_tweet():
     return df
 
 def get_res(zip_df, sat_df, tweet_df):
+    """
+    Get the result table
+    """
     tweet_df["count"] = 1
     tweet_df = tweet_df.groupby(["long", "lat", "cond_id", "beh_id"]).agg({"count":np.sum})
     tweet_df = tweet_df.reset_index()
@@ -94,7 +104,8 @@ def main():
     sat_df = get_sat()
     tweet_df = get_tweet()
     res = get_res(zip_df, sat_df, tweet_df)
-    print res
+    res = res.dropna()
+    pass
 
 if __name__ == "__main__":
     main()
