@@ -46,6 +46,8 @@ def cast_long_lat(x):
 
 def write_to_db(df, name):
     # TODO: float not being handled
+    logging.warning("Not doing anything.")
+    return
     sql.write_frame(df.where(pd.notnull(df), None), con=con, name=name, flavor='mysql', if_exists='replace')
 
 def get_zip():
