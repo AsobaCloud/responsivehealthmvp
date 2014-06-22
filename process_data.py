@@ -3,6 +3,8 @@ import numpy as np
 import string
 import logging
 import classifier
+from pandas.io import sql
+import MySQLdb
 
 logger = logging.getLogger(__name__)
 logging.basicConfig()
@@ -42,17 +44,21 @@ def cast_long_lat(x):
         logger.warning("Unable to convert %s to float", x)
         return np.nan
 
+def write_to_db(df, name):
+    # TODO: float not being handled
+    sql.write_frame(df.where(pd.notnull(df), None), con=con, name=name, flavor='mysql', if_exists='replace')
 
 def get_zip():
     """
     Get the zip table
     """
     df = pd.read_csv("data/zip_codes_states.csv")
-    df = df[["zip_code", "city", "longitude", "latitude"]]
     df = df.rename(columns={"longitude":"long", "latitude":"lat"})
 
     for col in ["long", "lat"]:
         df[col] = df[col].apply(cast_long_lat)
+    write_to_db(df, "zip")
+    df = df[["zip_code", "city", "long", "lat"]]
     return df
 
 def get_sat():
@@ -66,6 +72,14 @@ def get_sat():
     sat_col = [col2num(c) for c in sat_col]
     df["sat"] = df[sat_col].apply(calc_sat, axis=1)
     df = df.rename(columns={"ZIP Code":"zip_code"})
+
+    # renaming of columns
+    i = 1
+    for col in df.columns:
+        if "Percent" in col: # renaming only thoes big big percent columns
+            df = df.rename(columns={col:i})
+            i += 1
+    write_to_db(df, "sat")
     df = df[["zip_code", "sat"]]
     return df
 
@@ -76,11 +90,13 @@ def get_tweet():
     """
     df = pd.read_csv("data/tweets.csv")
     df = df.rename(columns={"lng":"long"})
-    df = df.dropna(subset=["long", "lat"]) # TODO: is it right to drop entries without long, lat?
+    # df = df.dropna(subset=["long", "lat"]) # TODO: is it right to drop entries without long, lat?
     for col in ["lat", "long"]:
         df[col] = df[col].apply(cast_long_lat)
-    df = df[["text", "lat", "long"]]
     df[["beh_id", "cond_id"]] = df["text"].apply(classifier.classify)
+    write_to_db(df, "tweet")
+    df = df[["text", "lat", "long", "cond_id", "beh_id"]]
+    df = df.dropna()
     return df
 
 def get_res(zip_df, sat_df, tweet_df):
@@ -104,8 +120,10 @@ def main():
     sat_df = get_sat()
     tweet_df = get_tweet()
     res = get_res(zip_df, sat_df, tweet_df)
-    res = res.dropna()
-    pass
+    write_to_db(res, "result")
+    # res = res.dropna()
+    print res
 
 if __name__ == "__main__":
+    con = MySQLdb.connect(user="root", host="localhost", passwd="sql", db="health")
     main()
