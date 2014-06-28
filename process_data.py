@@ -37,18 +37,20 @@ def cast_lng_lat(x):
     try:
         fx = float(x)
         if np.isnan(fx):
-            return np.nan
+            return 0
         else:
             return int(fx)
     except ValueError:
-        logger.warning("Unable to convert %s to float", x)
-        return np.nan
+        logger.warning("Unable to convert %s to int", x)
+        return 0
 
 def write_to_db(df, name):
-    # TODO: float not being handled
-    logging.warning("Not doing anything.")
-    return
-    sql.write_frame(df.where(pd.notnull(df), None), con=con, name=name, flavor='mysql', if_exists='replace')
+    # TODO: float with nan not being handled
+
+    # HACK:
+    sql._SQL_TYPES['text']['mysql'] = 'VARCHAR (255)'
+
+    sql.to_sql(df.where(pd.notnull(df), None), con=con, name=name, flavor='mysql', if_exists='replace', index="id")
 
 def get_zip():
     """
@@ -90,7 +92,7 @@ def get_tweet():
     Get the tweet table
     NOTE: there are lines with lat == "lat" !!
     """
-    df = pd.read_csv("data/tweets.csv", error_bad_lines=False)
+    df = pd.read_csv("data/tweets.csv", error_bad_lines=False, parse_dates=["created_at"])
     df = df.rename(columns={"lng":"lng"})
     # df = df.dropna(subset=["lng", "lat"]) # TODO: is it right to drop entries without lng, lat?
     for col in ["lat", "lng"]:

@@ -1,37 +1,20 @@
-import re
-
 import numpy as np
 import pandas as pd
 
-
-cond_dict = {
-                "mental":0,
-                "infectious":1,
-                "cardiovascular":2,
-                "colorectal":3,
-                "respiratory":4,
-                "injury":5,
-                "skin":6,
-                "neonatal":7,
-                "blood":8,
-                "drug":9,
-                "others":10
-              }
-
-health_words = ["disease", "disorder", "illness", "condition",
-          "health", "medicine", "fitness"]
-
-health_re = re.compile("|".join(health_words))
+from utils import health_re
+from utils import cond_ids
+from utils import in_words, not_words
 
 def get_beh_id(tweet):
     return np.random.randint(0, 3)
 
 def get_cond_id(tweet):
     if health_re.search(tweet):
-        for cond in cond_dict.keys():
-            if cond in tweet:
-                return cond_dict[cond]
-        return cond_dict["others"]
+        for id in cond_ids.keys():
+            if id in not_words:
+                tweet = not_words[id].sub(" ", tweet)
+            if in_words[id].search(tweet):
+                return id
     else:
         return -1
 
