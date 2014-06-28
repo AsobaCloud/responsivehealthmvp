@@ -30,7 +30,7 @@ def col2num(col):
             num = num * 26 + (ord(c.upper()) - ord('A')) + 1
     return num - 1
 
-def cast_long_lat(x):
+def cast_lng_lat(x):
     """
     only for longitude and latitude
     """
@@ -55,12 +55,12 @@ def get_zip():
     Get the zip table
     """
     df = pd.read_csv("data/zip_codes_states.csv")
-    df = df.rename(columns={"longitude":"long", "latitude":"lat"})
+    df = df.rename(columns={"longitude":"lng", "latitude":"lat"})
 
-    for col in ["long", "lat"]:
-        df[col] = df[col].apply(cast_long_lat)
+    for col in ["lng", "lat"]:
+        df[col] = df[col].apply(cast_lng_lat)
     write_to_db(df, "zip")
-    df = df[["zip_code", "city", "long", "lat"]]
+    df = df[["zip_code", "city", "lng", "lat"]]
     return df
 
 def get_sat():
@@ -90,14 +90,14 @@ def get_tweet():
     Get the tweet table
     NOTE: there are lines with lat == "lat" !!
     """
-    df = pd.read_csv("data/tweets.csv")
-    df = df.rename(columns={"lng":"long"})
-    # df = df.dropna(subset=["long", "lat"]) # TODO: is it right to drop entries without long, lat?
-    for col in ["lat", "long"]:
-        df[col] = df[col].apply(cast_long_lat)
+    df = pd.read_csv("data/tweets.csv", error_bad_lines=False)
+    df = df.rename(columns={"lng":"lng"})
+    # df = df.dropna(subset=["lng", "lat"]) # TODO: is it right to drop entries without lng, lat?
+    for col in ["lat", "lng"]:
+        df[col] = df[col].apply(cast_lng_lat)
     df[["beh_id", "cond_id"]] = df["text"].apply(classifier.classify)
     write_to_db(df, "tweet")
-    df = df[["text", "lat", "long", "cond_id", "beh_id"]]
+    df = df[["text", "lat", "lng", "cond_id", "beh_id"]]
     df = df.dropna()
     return df
 
@@ -106,14 +106,14 @@ def get_res(zip_df, sat_df, tweet_df):
     Get the result table
     """
     tweet_df["count"] = 1
-    tweet_df = tweet_df.groupby(["long", "lat", "cond_id", "beh_id"]).agg({"count":np.sum})
+    tweet_df = tweet_df.groupby(["lng", "lat", "cond_id", "beh_id"]).agg({"count":np.sum})
     tweet_df = tweet_df.reset_index()
 
     sat_df = sat_df.merge(zip_df, on="zip_code")
-    sat_df = sat_df.groupby(["long", "lat"]).agg({"sat":np.average})
+    sat_df = sat_df.groupby(["lng", "lat"]).agg({"sat":np.average})
     sat_df = sat_df.reset_index()
 
-    res = tweet_df.merge(sat_df, on=["long", "lat"])
+    res = tweet_df.merge(sat_df, on=["lng", "lat"])
     return res
 
 
