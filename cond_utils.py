@@ -22,7 +22,6 @@ cond_ids = {
 
 
 not_words = {
-                6: re.compile("skinny")
             }
 
 in_words = {
@@ -32,7 +31,7 @@ in_words = {
                 3: re.compile("colorectal"),
                 4: re.compile("respiratory"),
                 5: re.compile("injury"),
-                6: re.compile("skin"),
+                6: re.compile("skin(?!ny)"),
                 7: re.compile("neonatal"),
                 8: re.compile("blood"),
                 9: re.compile("drug"),
