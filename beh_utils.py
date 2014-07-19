@@ -18,7 +18,7 @@ beh_words = [".*"]
 beh_re = re.compile("|".join(beh_words))
 
 
-not_words = {5: "job"}
+not_words = {5: re.compile("job")}
 
 in_words = {
                 0: re.compile("(?=.*weight)(?=.*lift)"),
