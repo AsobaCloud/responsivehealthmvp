@@ -16,7 +16,7 @@ def predict():
     sex = request.args["sex"]
     age = request.args["age"]
     beh_id = request.args["beh_id"]
-    zip_code = request.args["zip_code"]
+    zip_code = int(request.args["zip_code"])
 
     ans = predictor.predict(sex, age, beh_id, zip_code)
     return json.dumps(ans)
