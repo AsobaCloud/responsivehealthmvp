@@ -95,7 +95,7 @@ def predict(sex, age, beh_id, zip_code):
     adm = data["total_discharge"]["age_group"][age] * pop_ratio * sex_ratio * beh_ratio
 
     stay = data["mean_stay"]["age_group"][age] * adm
-    cost = data["mean_stay"]["age_group"][age] * stay
+    cost = data["cost"]["age_group"][age] * stay
 
     ans = {
            "Expected Admissions": adm,
@@ -107,8 +107,8 @@ def predict(sex, age, beh_id, zip_code):
 
 
 def _test():
-    print predict('0', '1', 2, 60004)
-    print predict('0', '1', 2, 60005)
+    print predict('1', '4', 10, 60004)
+    # print predict('0', '1', 2, 60005)
 
 def main():
     _test()
