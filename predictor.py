@@ -10,6 +10,7 @@ import glob
 import json
 import os
 import pandas as pd
+import beh_utils
 
 def load_zip():
     """
@@ -88,8 +89,10 @@ def predict(sex, age, beh_id, zip_code):
 
     data = HCUPNET[state][county]
 
+    beh_ratio = beh_utils.counts[beh_id] / sum(beh_utils.counts.values())
     sex_ratio = data["total_discharge"]["sex"][sex] / sum(data["total_discharge"]["sex"].values())
-    adm = data["total_discharge"]["age_group"][age] * pop_ratio * sex_ratio
+
+    adm = data["total_discharge"]["age_group"][age] * pop_ratio * sex_ratio * beh_ratio
 
     stay = data["mean_stay"]["age_group"][age] * adm
     cost = data["mean_stay"]["age_group"][age] * stay
@@ -104,8 +107,8 @@ def predict(sex, age, beh_id, zip_code):
 
 
 def _test():
-    print predict('0', '1', '2', 60004)
-    print predict('0', '1', '2', 60005)
+    print predict('0', '1', 2, 60004)
+    print predict('0', '1', 2, 60005)
 
 def main():
     _test()

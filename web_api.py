@@ -15,7 +15,7 @@ app = Flask(__name__)
 def predict():
     sex = request.args["sex"]
     age = request.args["age"]
-    beh_id = request.args["beh_id"]
+    beh_id = int(request.args["beh_id"])
     zip_code = int(request.args["zip_code"])
 
     ans = predictor.predict(sex, age, beh_id, zip_code)
