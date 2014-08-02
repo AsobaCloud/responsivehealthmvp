@@ -103,12 +103,12 @@ def predict(sex, age, beh_id, zip_code):
     sex_key = "sex_%s" % sex
     beh_ratio = beh_utils.counts[beh_id] / sum(beh_utils.counts.values()) * (ZP_DICT[zip_code][age_key] / 100) * (ZP_DICT[zip_code][sex_key] / 100)
 
-    sex_ratio = data["total_discharge"]["sex"][sex] / sum(data["total_discharge"]["sex"].values())
+    # sex_ratio = data["total_discharge"]["sex"][sex] / sum(data["total_discharge"]["sex"].values())
 
-    adm = data["total_discharge"]["age_group"][age] * pop_ratio * sex_ratio * beh_ratio
+    adm = data["total_discharge"]["age_group"][age] * pop_ratio * beh_ratio
 
     stay = data["mean_stay"]["age_group"][age] * adm
-    cost = data["cost"]["age_group"][age] * stay
+    cost = data["cost"]["age_group"][age] * adm
 
     ans = {
            "Expected Admissions": adm,
@@ -120,8 +120,8 @@ def predict(sex, age, beh_id, zip_code):
 
 
 def _test():
-    print predict('1', '4', 10, 60004)
     print predict('0', '1', 10, 90001)
+    print predict('1', '1', 10, 90001)
 
 def main():
     _test()
