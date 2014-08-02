@@ -104,7 +104,7 @@ def predict(sex, age, beh_id, zip_code):
     beh_ratio = beh_utils.counts[beh_id] / sum(beh_utils.counts.values()) # * (ZP_DICT[zip_code][age_key] / 100) * (ZP_DICT[zip_code][sex_key] / 100)
 
     # sex_ratio = data["total_discharge"]["sex"][sex] / sum(data["total_discharge"]["sex"].values())
-    sex_ratio = ZP_DICT[zip_code][sex_key]
+    sex_ratio = ZP_DICT[zip_code][sex_key] / 100
 
     adm = data["total_discharge"]["age_group"][age] * pop_ratio * sex_ratio * beh_ratio
 
