@@ -31,13 +31,23 @@ def load_zp_dict():
     load the zip population dict
     """
     df = pd.read_csv("data/zip_pop.csv")
-    df = df[["zip", "population"]]
+    df['sex_0'] = df["sex_pct_male"]
+    df['sex_1'] = df["sex_pct_female"]
+
+    df['age_0'] = df["age_pct_0_19"] * (1 / 20) # <1
+    df['age_1'] = df["age_pct_0_19"] * (17 / 20) # 1-17
+    df['age_2'] = df["age_pct_0_19"] * (2 / 20) + df["age_pct_20_39"] + df["age_pct_40_59"] * (4 / 20) # 18-44
+    df['age_3'] = df["age_pct_40_59"] * (16 / 20) + df["age_pct_60_79"] * (5 / 20) # 44-65
+    df['age_4'] = df["age_pct_60_79"] * (15 / 20) + df["age_pct_80_over"] # 65+
+
+    columns = ["zip", "population", "sex_0", "sex_1", "age_0", "age_1", "age_2", "age_3", "age_4"]
+    df = df[columns]
     df = df.set_index("zip")
-    t_dict = json.loads(df.to_json())['population']
+    t_dict = json.loads(df.to_json(orient="index"))
     zp_dict = {}
 
-    for zip in t_dict:
-        zp_dict[int(zip)] = t_dict[zip]
+    for zip_code in t_dict:
+        zp_dict[int(zip_code)] = t_dict[zip_code]
 
     return zp_dict
 
@@ -48,11 +58,11 @@ def get_pop_ratio(zp_dict, zips, zip_code):
     total = 0
     for z in zips:
         try:
-            total += zp_dict[z]
+            total += zp_dict[z]["population"]
         except:
             pass
 
-    return 1. * zp_dict[zip_code] / total
+    return 1. * zp_dict[zip_code]["population"] / total
 
 def get_zips(zip_df, county, state):
     """
@@ -89,7 +99,10 @@ def predict(sex, age, beh_id, zip_code):
 
     data = HCUPNET[state][county]
 
-    beh_ratio = beh_utils.counts[beh_id] / sum(beh_utils.counts.values())
+    age_key = "age_%s" % age
+    sex_key = "sex_%s" % sex
+    beh_ratio = beh_utils.counts[beh_id] / sum(beh_utils.counts.values()) * (ZP_DICT[zip_code][age_key] / 100) * (ZP_DICT[zip_code][sex_key] / 100)
+
     sex_ratio = data["total_discharge"]["sex"][sex] / sum(data["total_discharge"]["sex"].values())
 
     adm = data["total_discharge"]["age_group"][age] * pop_ratio * sex_ratio * beh_ratio
@@ -108,7 +121,7 @@ def predict(sex, age, beh_id, zip_code):
 
 def _test():
     print predict('1', '4', 10, 60004)
-    # print predict('0', '1', 2, 60005)
+    print predict('0', '1', 10, 90001)
 
 def main():
     _test()
