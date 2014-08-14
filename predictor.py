@@ -115,7 +115,10 @@ def predict(sex, age, beh_id, zip_code):
     ans = {
            "Expected Admissions": adm,
            "Expected Stay": stay,
-           "Expected Cost:": cost
+           "Expected Cost": cost,
+           "Expected Stay per person": stay/adm,
+           "Expected Cost per person": cost/adm,
+
            }
 
     return ans
