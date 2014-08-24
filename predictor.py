@@ -12,13 +12,18 @@ import os
 import pandas as pd
 import beh_utils
 
-def load_zip():
+ZP_DICT = None
+ZIP_DF = None
+HCUPNET = None
+
+def load_zip(zip_dict):
     """
     Get the zip table
     """
     df = pd.read_csv("data/zip_codes_states.csv")
-    df = df[["zip_code", "state", "county"]]
-    return df
+    df = df[["zip_code", "state", "county", "city"]]
+    mask = df["zip_code"].isin(zip_dict)
+    return df[mask]
 
 def get_sc(zip_df, zip_code):
     mask = zip_df['zip_code'] == zip_code
@@ -71,6 +76,11 @@ def get_zips(zip_df, county, state):
     mask = (zip_df["county"] == county) & (zip_df["state"] == state)
     return zip_df[mask]["zip_code"].values
 
+def get_zips_by_city(zip_df, city):
+    mask = (zip_df["city"] == city)
+    zips = zip_df[mask]["zip_code"].values
+    return zips
+
 def load_hcupnet():
     hcupnet = {}
     for file in glob.glob("data/hcupnet/*.json"):
@@ -85,13 +95,21 @@ def load_hcupnet():
 
     return hcupnet
 
-def create_model():
-    pass
+def load_data():
+    global ZP_DICT, ZIP_DF, HCUPNET
+    ZP_DICT = load_zp_dict()
+    ZIP_DF = load_zip(ZP_DICT)
+    HCUPNET = load_hcupnet()
+    print "Data Loaded"
 
-ZIP_DF = load_zip()
-ZP_DICT = load_zp_dict()
-HCUPNET = load_hcupnet()
 def predict(sex, age, beh_id, zip_code):
+    global ZP_DICT, ZIP_DF, HCUPNET
+
+    if ZP_DICT is None or ZIP_DF is None or HCUPNET is None:
+        load_data()
+
+    if zip_code not in ZP_DICT:
+        return {"Error":"Zip not found"}
 
     state, county = get_sc(ZIP_DF, zip_code)
     zips = get_zips(ZIP_DF, county, state)
@@ -107,26 +125,40 @@ def predict(sex, age, beh_id, zip_code):
     sex_ratio = ZP_DICT[zip_code][sex_key] / 100
 
     adm = data["total_discharge"]["age_group"][age] * pop_ratio * sex_ratio * beh_ratio
-
-
     stay = data["mean_stay"]["age_group"][age] * adm
     cost = data["cost"]["age_group"][age] * adm
+
+    if adm == 0:
+        pass
 
     ans = {
            "Expected Admissions": adm,
            "Expected Stay": stay,
            "Expected Cost": cost,
-           "Expected Stay per person": stay/adm,
-           "Expected Cost per person": cost/adm,
+           "Expected Stay per person": data["mean_stay"]["age_group"][age],
+           "Expected Cost per person": data["cost"]["age_group"][age],
 
            }
 
     return ans
 
+def predict_by_cities(sex, age, beh_id, cities):
+    if ZIP_DF is None:
+        load_data()
+    results = {}
+    cities = cities.split(",")
+    for city in cities:
+        city = city.strip()
+        results[city] = {}
+        zips = get_zips_by_city(ZIP_DF, city)
+        for z in zips:
+            results[city][str(z)] = predict(sex, age, beh_id, z)
+    return results
 
 def _test():
     print predict('0', '1', 10, 90001)
     print predict('1', '1', 10, 90001)
+    print predict_by_cities('1', '1', 10, u"Los Angeles")
 
 def main():
     _test()
