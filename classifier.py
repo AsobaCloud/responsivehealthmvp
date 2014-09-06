@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 import cond_utils
-import beh_utils
+import new_beh_utils as  beh_utils
 import utils
 
 def is_spam(tweet):
@@ -48,8 +48,9 @@ def clean_tweet(t):
     return t
 
 def classify(tweet):
+    tweet = str(tweet)
     tweet = clean_tweet(tweet)
     beh_id = get_beh_id(tweet)
-    cond_id = get_cond_id(tweet)
+    cond_id = -1 # get_cond_id(tweet)
 
     return pd.Series([beh_id, cond_id])

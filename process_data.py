@@ -92,15 +92,14 @@ def get_tweet():
     Get the tweet table
     NOTE: there are lines with lat == "lat" !!
     """
-    df = pd.read_csv("data/tweets.csv", error_bad_lines=False, parse_dates=["created_at"])
+    df = pd.read_csv("data/processed_tweets.csv", error_bad_lines=False, parse_dates=["created_at"])
     df = df.rename(columns={"lng":"lng"})
-    df = df[df['lang'] == 'en'] # done in preprocessing
     # df = df.dropna(subset=["lng", "lat"]) # TODO: is it right to drop entries without lng, lat?
     for col in ["lat", "lng"]:
         df[col] = df[col].apply(cast_lng_lat)
     df[["beh_id", "cond_id"]] = df["text"].apply(classifier.classify)
-    write_to_db(df, "tweet")
     df = df[["text", "lat", "lng", "cond_id", "beh_id"]]
+    write_to_db(df, "tweet")
     df = df.dropna()
     return df
 
