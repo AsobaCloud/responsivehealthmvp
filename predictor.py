@@ -114,7 +114,6 @@ def predict(sex, age, beh_id, zip_code):
     state, county = get_sc(ZIP_DF, zip_code)
     zips = get_zips(ZIP_DF, county, state)
     pop_ratio = get_pop_ratio(ZP_DICT, zips, zip_code)
-
     data = HCUPNET[state][county]
 
     age_key = "age_%s" % age
@@ -152,13 +151,16 @@ def predict_by_cities(sex, age, beh_id, cities):
         results[city] = {}
         zips = get_zips_by_city(ZIP_DF, city)
         for z in zips:
-            results[city][str(z)] = predict(sex, age, beh_id, z)
+            try:
+                results[city][str(z)] = predict(sex, age, beh_id, z)
+            except Exception as e:
+                print "ERROR"
     return results
 
 def _test():
-    print predict('0', '1', 10, 90001)
-    print predict('1', '1', 10, 90001)
-    print predict_by_cities('1', '1', 10, u"Los Angeles")
+    # print predict('0', '1', 10, 90001)
+    # print predict('1', '1', 10, 90001)
+    print predict_by_cities('1', '1', 10, u"Oakland")
 
 def main():
     _test()
