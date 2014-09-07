@@ -12,26 +12,28 @@ import os
 import pandas as pd
 import beh_utils
 
-ZP_DICT = None
+ZIP_DICT = None
 ZIP_DF = None
 HCUPNET = None
+BEH_DF = None
 
 def load_zip(zip_dict):
     """
     Get the zip table
     """
     df = pd.read_csv("data/zip_codes_states.csv")
-    df = df[["zip_code", "state", "county", "city"]]
+    df = df[["zip_code", "longitude", "latitude", "state", "county", "city"]]
+    df = df.rename(columns={"longitude":"lng", "latitude":"lat"})
     mask = df["zip_code"].isin(zip_dict)
     return df[mask]
 
-def get_sc(zip_df, zip_code):
-    mask = zip_df['zip_code'] == zip_code
-    state = zip_df[mask]['state'].values[0]
-    county = zip_df[mask]['county'].values[0]
+def get_sc(zip_code):
+    mask = ZIP_DF['zip_code'] == zip_code
+    state = ZIP_DF[mask]['state'].values[0]
+    county = ZIP_DF[mask]['county'].values[0]
     return state, county
 
-def load_zp_dict():
+def load_zip_dict():
     """
     load the zip population dict
     """
@@ -49,32 +51,50 @@ def load_zp_dict():
     df = df[columns]
     df = df.set_index("zip")
     t_dict = json.loads(df.to_json(orient="index"))
-    zp_dict = {}
+    zip_dict = {}
 
     for zip_code in t_dict:
-        zp_dict[int(zip_code)] = t_dict[zip_code]
+        zip_dict[int(zip_code)] = t_dict[zip_code]
 
-    return zp_dict
+    return zip_dict
 
-def get_pop_ratio(zp_dict, zips, zip_code):
+def get_beh_ratio(beh_id, zip_code):
+    # get lng, lat
+    mask = ZIP_DF["zip_code"] == zip_code
+    lng, lat = ZIP_DF[mask]["lng"], ZIP_DF[mask]["lat"]
+
+    # get count
+    mask = (BEH_DF["lng"] == lng) & (BEH_DF["lat"] == lat) & (BEH_DF["beh_id"] == beh_id)
+    count = len(BEH_DF[mask])
+
+    # total length
+    mask = (BEH_DF["lng"] == lng) & (BEH_DF["lat"] == lat)
+    total_count = len(BEH_DF[mask])
+
+    beh_ratio = count / total_count
+
+    return beh_ratio
+
+
+def get_pop_ratio(zips, zip_code):
     """
     return ration of pop(zip) / pop(zips)
     """
     total = 0
     for z in zips:
         try:
-            total += zp_dict[z]["population"]
+            total += ZIP_DICT[z]["population"]
         except:
             pass
 
-    return 1. * zp_dict[zip_code]["population"] / total
+    return 1. * ZIP_DICT[zip_code]["population"] / total
 
-def get_zips(zip_df, county, state):
+def get_zips(county, state):
     """
     return all the zip codes in the county
     """
-    mask = (zip_df["county"] == county) & (zip_df["state"] == state)
-    return zip_df[mask]["zip_code"].values
+    mask = (ZIP_DF["county"] == county) & (ZIP_DF["state"] == state)
+    return ZIP_DF[mask]["zip_code"].values
 
 def get_zips_by_city(zip_df, city):
     mask = (zip_df["city"] == city)
@@ -96,32 +116,32 @@ def load_hcupnet():
     return hcupnet
 
 def load_data():
-    global ZP_DICT, ZIP_DF, HCUPNET
-    ZP_DICT = load_zp_dict()
-    ZIP_DF = load_zip(ZP_DICT)
+    global ZIP_DICT, ZIP_DF, HCUPNET
+    ZIP_DICT = load_zip_dict()
+    ZIP_DF = load_zip(ZIP_DICT)
     HCUPNET = load_hcupnet()
     print "Data Loaded"
 
 def predict(sex, age, beh_id, zip_code):
-    global ZP_DICT, ZIP_DF, HCUPNET
+    global ZIP_DICT, ZIP_DF, HCUPNET
 
-    if ZP_DICT is None or ZIP_DF is None or HCUPNET is None:
+    if ZIP_DICT is None or ZIP_DF is None or HCUPNET is None:
         load_data()
 
-    if zip_code not in ZP_DICT:
+    if zip_code not in ZIP_DICT:
         return {"Error":"Zip not found"}
 
-    state, county = get_sc(ZIP_DF, zip_code)
-    zips = get_zips(ZIP_DF, county, state)
-    pop_ratio = get_pop_ratio(ZP_DICT, zips, zip_code)
+    state, county = get_sc(zip_code)
+    zips = get_zips(county, state)
+    pop_ratio = get_pop_ratio(zips, zip_code)
     data = HCUPNET[state][county]
 
     age_key = "age_%s" % age
     sex_key = "sex_%s" % sex
-    beh_ratio = beh_utils.counts[beh_id] / sum(beh_utils.counts.values()) # * (ZP_DICT[zip_code][age_key] / 100) * (ZP_DICT[zip_code][sex_key] / 100)
+    beh_ratio = beh_utils.counts[beh_id] / sum(beh_utils.counts.values()) # * (ZIP_DICT[zip_code][age_key] / 100) * (ZIP_DICT[zip_code][sex_key] / 100)
 
     # sex_ratio = data["total_discharge"]["sex"][sex] / sum(data["total_discharge"]["sex"].values())
-    sex_ratio = ZP_DICT[zip_code][sex_key] / 100
+    sex_ratio = ZIP_DICT[zip_code][sex_key] / 100
 
     adm = data["total_discharge"]["age_group"][age] * pop_ratio * sex_ratio * beh_ratio
     stay = data["mean_stay"]["age_group"][age] * adm

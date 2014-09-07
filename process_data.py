@@ -98,7 +98,7 @@ def get_tweet():
     for col in ["lat", "lng"]:
         df[col] = df[col].apply(cast_lng_lat)
     df[["beh_id", "cond_id"]] = df["text"].apply(classifier.classify)
-    df = df[["text", "lat", "lng", "cond_id", "beh_id"]]
+    df = df[["lat", "lng", "beh_id", "screen_name", "created_at"]]
     write_to_db(df, "tweet")
     df = df.dropna()
     return df
