@@ -77,7 +77,7 @@ def get_beh_ratio(beh_id, zip_code):
     mask = (BEH_DF["lng"] == lng) & (BEH_DF["lat"] == lat)
     total_count = len(BEH_DF[mask]["screen_name"].unique())
 
-    if total_count != 0:
+    if count != 0 and total_count != 0:
         beh_ratio = count / total_count
     else:
         print "Warning, No data for %s, %s" % (lng, lat)
@@ -191,9 +191,9 @@ def predict_by_cities(sex, age, beh_id, cities):
     return results
 
 def _test():
-    print predict('0', '1', 7, 90001)
-    print predict('1', '1', 7, 90001)
-    print predict_by_cities('1', '1', 7, u"Oakland")
+    # print predict('0', '1', 7, 90001)
+    # print predict('1', '1', 7, 90001)
+    print predict_by_cities('1', '1', 2, u"Oakland")
 
 def main():
     _test()
