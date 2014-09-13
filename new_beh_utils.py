@@ -27,17 +27,3 @@ in_words = {
                 6: re.compile("depressed|alone|stressed|suicidal|sad|crying|unhappy|lonely|((?=.*self)(?=.*harm))|angry"),
                 7: re.compile(".*") # match anything
             }
-
-
-counts = {0: 12,
-          1: 136,
-          2: 3,
-          3: 2,
-          4: 1064,
-          5: 12,
-          6: 25,
-          7: 6,
-          8: 10,
-          9: 7,
-          10: 273210,
-          - 1: 6047}

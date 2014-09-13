@@ -8,7 +8,7 @@ spam_res = [
                re.compile("(?=.*hot)(?=.*sex)"),
                re.compile("(?=.*hot)(?=.*girl)"),
                re.compile("#job"),
-               re.compile("#viagra"),
+               re.compile(" viagra "),
            ]
 
 

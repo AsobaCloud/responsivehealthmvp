@@ -4,10 +4,13 @@ import string
 import logging
 import classifier
 from pandas.io import sql
+import new_beh_utils as beh_utils
 import MySQLdb
 
 logger = logging.getLogger(__name__)
 logging.basicConfig()
+
+DEBUG = True
 
 def calc_sat(row):
     """
@@ -87,6 +90,12 @@ def get_sat():
     df = df[["zip_code", "sat"]]
     return df
 
+def dump_tweet(df):
+    beh_ids = df["beh_id"].unique()
+    for beh_id in beh_ids:
+        mask = df["beh_id"] == beh_id
+        df[mask].to_csv("debug/" + beh_utils.beh_ids[beh_id] + ".csv", index_label="id")
+
 def get_tweet():
     """
     Get the tweet table
@@ -98,7 +107,11 @@ def get_tweet():
     for col in ["lat", "lng"]:
         df[col] = df[col].apply(cast_lng_lat)
     df[["beh_id", "cond_id"]] = df["text"].apply(classifier.classify)
+    if DEBUG:
+        dump_tweet(df)
     df = df[["lat", "lng", "beh_id", "screen_name", "created_at"]]
+    df.to_csv("data/beh_df.csv", index=False)
+    logger.info("beh_df.csv written!")
     write_to_db(df, "tweet")
     df = df.dropna()
     return df
@@ -120,13 +133,13 @@ def get_res(zip_df, sat_df, tweet_df):
 
 
 def main():
-    zip_df = get_zip()
-    sat_df = get_sat()
+    # zip_df = get_zip()
+    # sat_df = get_sat()
     tweet_df = get_tweet()
-    res = get_res(zip_df, sat_df, tweet_df)
-    write_to_db(res, "result")
+    # res = get_res(zip_df, sat_df, tweet_df)
+    # write_to_db(res, "result")
     # res = res.dropna()
-    print res
+    # print res
 
 if __name__ == "__main__":
     con = MySQLdb.connect(user="root", host="localhost", passwd="sql", db="health")

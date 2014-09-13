@@ -10,7 +10,7 @@ import glob
 import json
 import os
 import pandas as pd
-import beh_utils
+from process_data import cast_lng_lat
 
 ZIP_DICT = None
 ZIP_DF = None
@@ -24,6 +24,10 @@ def load_zip(zip_dict):
     df = pd.read_csv("data/zip_codes_states.csv")
     df = df[["zip_code", "longitude", "latitude", "state", "county", "city"]]
     df = df.rename(columns={"longitude":"lng", "latitude":"lat"})
+
+    for col in ["lng", "lat"]:
+        df[col] = df[col].apply(cast_lng_lat)
+
     mask = df["zip_code"].isin(zip_dict)
     return df[mask]
 
@@ -61,17 +65,23 @@ def load_zip_dict():
 def get_beh_ratio(beh_id, zip_code):
     # get lng, lat
     mask = ZIP_DF["zip_code"] == zip_code
-    lng, lat = ZIP_DF[mask]["lng"], ZIP_DF[mask]["lat"]
+
+    lat = ZIP_DF[mask]['lat'].values[0]
+    lng = ZIP_DF[mask]['lng'].values[0]
 
     # get count
     mask = (BEH_DF["lng"] == lng) & (BEH_DF["lat"] == lat) & (BEH_DF["beh_id"] == beh_id)
-    count = len(BEH_DF[mask])
+    count = len(BEH_DF[mask]["screen_name"].unique())
 
     # total length
     mask = (BEH_DF["lng"] == lng) & (BEH_DF["lat"] == lat)
-    total_count = len(BEH_DF[mask])
+    total_count = len(BEH_DF[mask]["screen_name"].unique())
 
-    beh_ratio = count / total_count
+    if total_count != 0:
+        beh_ratio = count / total_count
+    else:
+        print "Warning, No data for %s, %s" % (lng, lat)
+        beh_ratio = 0.1
 
     return beh_ratio
 
@@ -116,9 +126,10 @@ def load_hcupnet():
     return hcupnet
 
 def load_data():
-    global ZIP_DICT, ZIP_DF, HCUPNET
+    global ZIP_DICT, ZIP_DF, HCUPNET, BEH_DF
     ZIP_DICT = load_zip_dict()
     ZIP_DF = load_zip(ZIP_DICT)
+    BEH_DF = pd.read_csv("data/beh_df.csv")
     HCUPNET = load_hcupnet()
     print "Data Loaded"
 
@@ -138,7 +149,9 @@ def predict(sex, age, beh_id, zip_code):
 
     age_key = "age_%s" % age
     sex_key = "sex_%s" % sex
-    beh_ratio = beh_utils.counts[beh_id] / sum(beh_utils.counts.values()) # * (ZIP_DICT[zip_code][age_key] / 100) * (ZIP_DICT[zip_code][sex_key] / 100)
+
+    # beh_ratio = beh_utils.counts[beh_id] / sum(beh_utils.counts.values()) # * (ZIP_DICT[zip_code][age_key] / 100) * (ZIP_DICT[zip_code][sex_key] / 100)
+    beh_ratio = get_beh_ratio(beh_id, zip_code)
 
     # sex_ratio = data["total_discharge"]["sex"][sex] / sum(data["total_discharge"]["sex"].values())
     sex_ratio = ZIP_DICT[zip_code][sex_key] / 100
@@ -178,9 +191,9 @@ def predict_by_cities(sex, age, beh_id, cities):
     return results
 
 def _test():
-    # print predict('0', '1', 10, 90001)
-    # print predict('1', '1', 10, 90001)
-    print predict_by_cities('1', '1', 10, u"Oakland")
+    print predict('0', '1', 7, 90001)
+    print predict('1', '1', 7, 90001)
+    print predict_by_cities('1', '1', 7, u"Oakland")
 
 def main():
     _test()
